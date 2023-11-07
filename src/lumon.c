@@ -10,15 +10,17 @@ uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
 uint32_t kStartPlay = 0xC0DEABBA;
 
+#define FLASH_PIN 28
+
 void init_flash(void) {
-  gpio_init(25);
-  gpio_set_dir(25, GPIO_OUT);
+  gpio_init(FLASH_PIN);
+  gpio_set_dir(FLASH_PIN, GPIO_OUT);
 }
 
 void flash(void) {
-  gpio_put(25, 1);
+  gpio_put(FLASH_PIN, 1);
   sleep_ms(100);
-  gpio_put(25, 0);
+  gpio_put(FLASH_PIN, 0);
   sleep_ms(100);
 }
 
@@ -45,7 +47,6 @@ void core1_start(void) {
 
 int main(void) {
   init_flash();
-  flash();
   flash();
   flash();
   flash();
