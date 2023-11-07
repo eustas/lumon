@@ -18,6 +18,8 @@ add_executable(lumon
   src/lumon.c
 )
 
+pico_generate_pio_header(lumon ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
+
 target_link_libraries(lumon
   pico_multicore
   pico_stdlib

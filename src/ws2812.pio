@@ -1,0 +1,11 @@
+.program ws2812
+
+; FIFO TX-joined
+
+start:
+    mov pins, null     [7]  ;
+    pull ifempty block [0]  ;
+.wrap_target
+    mov pins, !null    [7]  ;
+    out pins, 16
+.wrap
