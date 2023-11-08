@@ -11,6 +11,8 @@ uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
 uint32_t kStartPlay = 0xC0DEABBA;
 
+#define USR0_PIN 14
+#define USR1_PIN 0
 #define FLASH_PIN 15
 #define OUT_PIN0 16
 #define NUM_OUT_PINS 1
@@ -29,6 +31,16 @@ void init_flash(void) {
   gpio_set_dir(FLASH_PIN, GPIO_OUT);
 }
 
+void init_usr(void) {
+  gpio_init(USR0_PIN);
+  gpio_pull_up(USR0_PIN);
+  gpio_set_dir(USR0_PIN, GPIO_IN);
+
+  gpio_init(USR1_PIN);
+  gpio_pull_up(USR1_PIN);
+  gpio_set_dir(USR1_PIN, GPIO_IN);
+}
+
 void flash(void) {
   gpio_put(FLASH_PIN, 1);
   sleep_ms(100);
@@ -40,12 +52,12 @@ void core0_main(void) {
   pio_set_sm_mask_enabled(pio0,
       /* mask */ (1 << NUM_OUT_PINS) - 1, /* enabled */ true);
   uint32_t led[NUM_LED * 2 + 4];
+  int t = gpio_get(USR1_PIN) ? 63 : 255;
   for (int i = 0; i < 2 * NUM_LED + 4; i++) {
     int pace = NUM_LED / 6;
     int part = i / pace;
     int phase = i - part * pace;
     part = part % 6;
-    int t = 31;
     int u = (t * phase) / pace;
     int d = t - u;
     int r, g, b;
@@ -77,7 +89,8 @@ void core0_main(void) {
       pio0->txf[0] = led[t++];
     }
     //led[i + t0] >>= 4;
-    i = (i + 1) % NUM_LED;
+    int dir = gpio_get(USR0_PIN) ? 1 : -1;
+    i = (i + NUM_LED + dir) % NUM_LED;
   }
 }
 
@@ -138,6 +151,8 @@ void prepare_pio(void) {
 
 int main(void) {
   init_flash();
+  flash();
+  init_usr();
   flash();
   init_pio();
   flash();
