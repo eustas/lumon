@@ -3,9 +3,10 @@
 ; FIFO TX-joined
 
 .wrap_target
-    mov pins, !null    [5]  ;
-    out pins, 1        [8]  ;
+    mov pins, !null    [27] ;
+    out pins, 1        [31] ;
+    nop                [12] ; 
 public entry_point:         ;
-    mov pins, null     [4]  ;
+    mov pins, null     [26] ;
     pull ifempty block [0]  ;
 .wrap

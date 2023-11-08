@@ -19,7 +19,9 @@ uint32_t kStartPlay = 0xC0DEABBA;
 // 1 bit 21 ticks, 40ns each.
 // 50ns (TICK) corresponds to 25MHz.
 // TICKS_PER_CLK is a CPU to PIO frequency divider
-#define TICKS_PER_CLK 5
+// #define TICKS_PER_CLK 5
+#define TICKS_PER_CLK 1
+
 #define NUM_LED 300
 
 void init_flash(void) {
@@ -45,7 +47,7 @@ void core0_main(void) {
   }
   int i = 0;
   while (1) {
-    sleep_us(300);
+    sleep_us(280);
     i = (i + 1) % NUM_LED;
     led[i] <<= 4;
     for (int t = 0; t < NUM_LED;) {
@@ -86,7 +88,7 @@ void prepare_pio(void) {
   // sm_config_set_in_pins(&c, in_base);
   // sm_config_set_sideset(&c, bit_count, optional, pindirs false);
   sm_config_set_clkdiv_int_frac(&c,
-      /* div_int */ TICKS_PER_CLK, /* div_frac */ 0);
+       /* div_int */ TICKS_PER_CLK, /* div_frac */ 0);
   sm_config_set_wrap(&c, ws2812_wrap_target, ws2812_wrap);
   // sm_config_set_jmp_pin(&c, pin);
   sm_config_set_in_shift(&c, /* shift_right */ true, /* autopush */ false,
