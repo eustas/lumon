@@ -2,10 +2,10 @@
 
 ; FIFO TX-joined
 
-start:
+public entry_point:         ;
     mov pins, null     [7]  ;
     pull ifempty block [0]  ;
 .wrap_target
     mov pins, !null    [7]  ;
-    out pins, 16
+    out pins, 1
 .wrap
