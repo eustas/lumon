@@ -11,7 +11,7 @@ uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
 uint32_t kStartPlay = 0xC0DEABBA;
 
-#define FLASH_PIN 28
+#define FLASH_PIN 15
 #define OUT_PIN0 16
 #define NUM_OUT_PINS 1
 
@@ -39,25 +39,45 @@ void flash(void) {
 void core0_main(void) {
   pio_set_sm_mask_enabled(pio0,
       /* mask */ (1 << NUM_OUT_PINS) - 1, /* enabled */ true);
-  uint32_t led[NUM_LED + 7];
-  for (int i = 0; i < NUM_LED; i += 3) {
-    led[i + 0] = 0x01000000; 
-    led[i + 1] = 0x00010000; 
-    led[i + 2] = 0x00000100; 
+  uint32_t led[NUM_LED * 2 + 4];
+  for (int i = 0; i < 2 * NUM_LED + 4; i++) {
+    int pace = NUM_LED / 6;
+    int part = i / pace;
+    int phase = i - part * pace;
+    part = part % 6;
+    int t = 31;
+    int u = (t * phase) / pace;
+    int d = t - u;
+    int r, g, b;
+    switch (part) {
+      case 0: r = t; g = u; b = 0; break;
+      case 1: r = d; g = t; b = 0; break;
+      case 2: r = 0; g = t; b = u; break;
+      case 3: r = 0; g = d; b = t; break;
+      case 4: r = u; g = 0; b = t; break;
+      default: r = t; g = 0; b = d; break;
+    }
+    led[i] = (r << 24) | (g << 16) | (b << 8);
   }
+  //for (int i = 0; i < NUM_LED; i += 3) {
+  //  led[i + 0] = 0x01000000; 
+  //  led[i + 1] = 0x00010000; 
+  //  led[i + 2] = 0x00000100; 
+  //}
   int i = 0;
   while (1) {
     sleep_us(280);
-    i = (i + 1) % NUM_LED;
-    led[i] <<= 4;
-    for (int t = 0; t < NUM_LED;) {
+    int t0 = i;
+    //led[i + t0] <<= 4;
+    for (int t = t0; t < NUM_LED + t0;) {
       while (pio_sm_get_tx_fifo_level(pio0, /* sm */ 0) >= 4) {}
       pio0->txf[0] = led[t++];
       pio0->txf[0] = led[t++];
       pio0->txf[0] = led[t++];
       pio0->txf[0] = led[t++];
     }
-    led[i] >>= 4;
+    //led[i + t0] >>= 4;
+    i = (i + 1) % NUM_LED;
   }
 }
 
