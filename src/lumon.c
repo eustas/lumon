@@ -16,10 +16,11 @@ uint32_t kStartPlay = 0xC0DEABBA;
 #define NUM_OUT_PINS 1
 
 // Native CPU frequency (CLK) is 125MHz
-// 1 bit on wire is 125us. It consists of 25 ticks, 5us each.
-// 5us (TICK) corresponds to 200KHz.
+// 1 bit 21 ticks, 40ns each.
+// 50ns (TICK) corresponds to 25MHz.
 // TICKS_PER_CLK is a CPU to PIO frequency divider
-#define TICKS_PER_CLK 625
+#define TICKS_PER_CLK 5
+#define NUM_LED 300
 
 void init_flash(void) {
   gpio_init(FLASH_PIN);
@@ -36,11 +37,25 @@ void flash(void) {
 void core0_main(void) {
   pio_set_sm_mask_enabled(pio0,
       /* mask */ (1 << NUM_OUT_PINS) - 1, /* enabled */ true);
+  uint32_t led[NUM_LED + 7];
+  for (int i = 0; i < NUM_LED; i += 3) {
+    led[i + 0] = 0x01000000; 
+    led[i + 1] = 0x00010000; 
+    led[i + 2] = 0x00000100; 
+  }
+  int i = 0;
   while (1) {
-    flash();
-    pio0->txf[0] = 0xFF0000;
-    pio0->txf[0] = 0x00FF00;
-    pio0->txf[0] = 0x0000FF;
+    sleep_us(300);
+    i = (i + 1) % NUM_LED;
+    led[i] <<= 4;
+    for (int t = 0; t < NUM_LED;) {
+      while (pio_sm_get_tx_fifo_level(pio0, /* sm */ 0) >= 4) {}
+      pio0->txf[0] = led[t++];
+      pio0->txf[0] = led[t++];
+      pio0->txf[0] = led[t++];
+      pio0->txf[0] = led[t++];
+    }
+    led[i] >>= 4;
   }
 }
 
@@ -76,7 +91,7 @@ void prepare_pio(void) {
   // sm_config_set_jmp_pin(&c, pin);
   sm_config_set_in_shift(&c, /* shift_right */ true, /* autopush */ false,
                           /* push threshold */ 32);
-  sm_config_set_out_shift(&c, /* shift_right */ true, /* autopull */ false,
+  sm_config_set_out_shift(&c, /* shift_right */ false, /* autopull */ false,
                           /* pull_threshold */ 24);
   sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
   // sm_config_set_out_special(&c, sticky, has_enable_pin, enable_pin_index);
