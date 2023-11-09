@@ -7,30 +7,47 @@
 #include "pico/multicore.h"
 #include "ws2812.pio.h"
 
+// Initial dual-core handshake.
 uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
-uint32_t kStartPlay = 0xC0DEABBA;
+// We report that passed pixel data is not used anymore.
+uint32_t kCore0Done  = 0xFEEDBAC2;
 
-#define USR0_PIN 14
-#define USR1_PIN 0
+// Pin configuration
 #define FLASH_PIN 15
 #define OUT_PIN0 16
+// It is possible to drive up to 8 LED strips.
 #define NUM_OUT_PINS 1
+#define USR0_PIN 14
+#define USR1_PIN 0
 
-// Native CPU frequency (CLK) is 125MHz
-// 1 bit 21 ticks, 40ns each.
-// 50ns (TICK) corresponds to 25MHz.
-// TICKS_PER_CLK is a CPU to PIO frequency divider
-// #define TICKS_PER_CLK 5
+// We do not throttle PIO; every bit is transfered in 101 clk that maps to 808ns
+// at default CPU frequency (125MHz).
 #define TICKS_PER_CLK 1
 
+// Number of LEDs in a line
 #define NUM_LED 300
 
+// Define max brightness levels.
+#define LOW_BRIGHTNESS 63
+#define HIGH_BRIGHTNESS 255
+
+// We use a separate LED for debugging.
 void init_flash(void) {
   gpio_init(FLASH_PIN);
   gpio_set_dir(FLASH_PIN, GPIO_OUT);
 }
 
+// "Blocking" debug flash. Takes 200ms.
+void flash(void) {
+  gpio_put(FLASH_PIN, 1);
+  sleep_ms(100);
+  gpio_put(FLASH_PIN, 0);
+  sleep_ms(100);
+}
+
+// Those pins are used as inputs. By default those are "pulled-up" and read 1
+// when not connected; connect pin to GND to make it read 0.
 void init_usr(void) {
   gpio_init(USR0_PIN);
   gpio_pull_up(USR0_PIN);
@@ -41,64 +58,89 @@ void init_usr(void) {
   gpio_set_dir(USR1_PIN, GPIO_IN);
 }
 
-void flash(void) {
-  gpio_put(FLASH_PIN, 1);
-  sleep_ms(100);
-  gpio_put(FLASH_PIN, 0);
-  sleep_ms(100);
-}
-
+// Core 0 is used for system IO. It pushes updates to LED strip, and does other
+// IO (WiFi, USB-UART, etc.)
 void core0_main(void) {
+  // Run all PIO modules.
   pio_set_sm_mask_enabled(pio0,
       /* mask */ (1 << NUM_OUT_PINS) - 1, /* enabled */ true);
-  uint32_t led[NUM_LED * 2 + 4];
-  int t = gpio_get(USR1_PIN) ? 63 : 255;
-  for (int i = 0; i < 2 * NUM_LED + 4; i++) {
-    int pace = NUM_LED / 6;
-    int part = i / pace;
-    int phase = i - part * pace;
-    part = part % 6;
-    int u = (t * phase) / pace;
-    int d = t - u;
-    int r, g, b;
-    switch (part) {
-      case 0: r = t; g = u; b = 0; break;
-      case 1: r = d; g = t; b = 0; break;
-      case 2: r = 0; g = t; b = u; break;
-      case 3: r = 0; g = d; b = t; break;
-      case 4: r = u; g = 0; b = t; break;
-      default: r = t; g = 0; b = d; break;
-    }
-    led[i] = (r << 24) | (g << 16) | (b << 8);
-  }
-  //for (int i = 0; i < NUM_LED; i += 3) {
-  //  led[i + 0] = 0x01000000; 
-  //  led[i + 1] = 0x00010000; 
-  //  led[i + 2] = 0x00000100; 
-  //}
-  int i = 0;
+
+  // Notify, that we are ready to render.
+  multicore_fifo_push_blocking(kCore0Done);
+
   while (1) {
-    sleep_us(280);
-    int t0 = i;
-    //led[i + t0] <<= 4;
-    for (int t = t0; t < NUM_LED + t0;) {
+    // The other core gives us the new data to render.
+    // Likely non-blocking, i.e. data is ready at this moment.
+    uint32_t* led = (uint32_t*)multicore_fifo_pop_blocking();
+    for (int t = 0; t < NUM_LED;) {
       while (pio_sm_get_tx_fifo_level(pio0, /* sm */ 0) >= 4) {}
       pio0->txf[0] = led[t++];
       pio0->txf[0] = led[t++];
       pio0->txf[0] = led[t++];
       pio0->txf[0] = led[t++];
     }
-    //led[i + t0] >>= 4;
-    int dir = gpio_get(USR0_PIN) ? 1 : -1;
-    i = (i + NUM_LED + dir) % NUM_LED;
+    // Actually non-blocking - our synchronization is pull-driven.
+    multicore_fifo_push_blocking(kCore0Done);
+    sleep_us(280);
   }
 }
 
+static uint32_t bankA[NUM_LED];
+static uint32_t bankB[NUM_LED];
+
+// Core 1 is used for calculations.
 void core1_main(void) {
+  uint32_t slopeLo[NUM_LED / 6];
+  uint32_t slopeHi[NUM_LED / 6];
+  int pace = NUM_LED / 6;
+  for (int i = 0; i < pace; i++) {
+    slopeLo[i] = (LOW_BRIGHTNESS * i) / pace;
+    slopeHi[i] = (HIGH_BRIGHTNESS * i) / pace;
+  }
+
+  int bank = 0;
   while (1) {
+    uint32_t* led = bank ? bankA : bankB;
+    bank ^= 1;
+
+    uint32_t* slope = gpio_get(USR1_PIN) ? slopeLo : slopeHi;
+
+    int part = 0;
+    int phase = 0;
+    // int dir = gpio_get(USR0_PIN) ? 1 : -1;
+    // i = (i + NUM_LED + dir) % NUM_LED;
+
+    for (int i = 0; i < NUM_LED; i++) {
+      int u = slope[phase];
+      int d = t - u;
+      int r, g, b;
+      switch (part) {
+        case 0: r = t; g = u; b = 0; break;
+        case 1: r = d; g = t; b = 0; break;
+        case 2: r = 0; g = t; b = u; break;
+        case 3: r = 0; g = d; b = t; break;
+        case 4: r = u; g = 0; b = t; break;
+        default: r = t; g = 0; b = d; break;
+      }
+      led[i] = (r << 24) | (g << 16) | (b << 8);
+
+      phase++;
+      if (phase == pace) {
+        phase = 0;
+        part++;
+        if (part == 6) {
+          part = 0;
+        }
+      }
+    }
+
+    // Wait with renderer.
+    (void)multicore_fifo_pop_blocking();  // we expect kCore0Done here.
+    multicore_fifo_push_blocking(led);
   }
 }
 
+// Handshake with core 0 and start main loop.
 void core1_start(void) {
   uint32_t test = multicore_fifo_pop_blocking();
   if (test == kCore0Ready) {
@@ -110,12 +152,14 @@ void core1_start(void) {
   }
 }
 
+// Reset PIO and load program.
 void init_pio(void) {
   pio_clear_instruction_memory(pio0);
   pio_clear_instruction_memory(pio1);
   pio_add_program_at_offset(pio0, &ws2812_program, 0);
 }
 
+// Configure PIO modules.
 void prepare_pio(void) {
   pio_sm_config c = pio_get_default_sm_config();
   // sm_config_set_in_pins(&c, in_base);
@@ -149,6 +193,7 @@ void prepare_pio(void) {
   }
 }
 
+// Entry point.
 int main(void) {
   init_flash();
   flash();
@@ -159,6 +204,7 @@ int main(void) {
   prepare_pio();
   flash();
 
+  // Initialize handshake. We are running on core 0.
   multicore_launch_core1(core1_start);
   multicore_fifo_push_blocking(kCore0Ready);
   uint32_t test = multicore_fifo_pop_blocking();
