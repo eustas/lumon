@@ -16,6 +16,8 @@ pico_sdk_init()
 
 add_executable(lumon
   src/lumon.c
+  src/renderA.c
+  # src/renderB.c
 )
 
 pico_generate_pio_header(lumon ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)

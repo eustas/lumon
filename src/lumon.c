@@ -1,10 +1,15 @@
 #include "lumon.h"
 
+// System
 #include <stdint.h>
 #include <string.h>
 
+// Board
 #include "hardware/gpio.h"
 #include "pico/multicore.h"
+
+// Project
+#include "setup.h"
 #include "ws2812.pio.h"
 
 // Initial dual-core handshake.
@@ -12,25 +17,6 @@ uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
 // We report that passed pixel data is not used anymore.
 uint32_t kCore0Done  = 0xFEEDBAC2;
-
-// Pin configuration
-#define FLASH_PIN 15
-#define OUT_PIN0 16
-// It is possible to drive up to 8 LED strips.
-#define NUM_OUT_PINS 1
-#define USR0_PIN 14
-#define USR1_PIN 0
-
-// We do not throttle PIO; every bit is transfered in 101 clk that maps to 808ns
-// at default CPU frequency (125MHz).
-#define TICKS_PER_CLK 1
-
-// Number of LEDs in a line
-#define NUM_LED 300
-
-// Define max brightness levels.
-#define LOW_BRIGHTNESS 63
-#define HIGH_BRIGHTNESS 255
 
 // We use a separate LED for debugging.
 void init_flash(void) {
@@ -89,136 +75,9 @@ void core0_main(void) {
 static uint32_t bankA[NUM_LED];
 static uint32_t bankB[NUM_LED];
 
-/*
-// Data persisted between "frames".
-typedef struct Cookie {
-#define PACE (NUM_LED / 6)
-  int pos;
-  uint32_t slopeLo[PACE];
-  uint32_t slopeHi[PACE];
-} Cookie;
-
-static Cookie cookie;
-
-// Run-once for business-logic.
-void init_cookie(void) {
-  cookie.pos = 0;
-  for (int i = 0; i < PACE; i++) {
-    cookie.slopeLo[i] = (LOW_BRIGHTNESS * i) / PACE;
-    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * i) / PACE;
-  }
-}
-
-// Put your amazing code here.
-void render(uint32_t* led) {
-  int usr1 = gpio_get(USR1_PIN);
-  uint32_t* slope = usr1 ? cookie.slopeLo : cookie.slopeHi;
-  uint32_t t = usr1 ? LOW_BRIGHTNESS : HIGH_BRIGHTNESS;
-
-  int dir = gpio_get(USR0_PIN) ? 1 : -1;
-  int pos = (cookie.pos + NUM_LED + dir) % NUM_LED;
-  cookie.pos = pos;
-
-  int part = pos / PACE;
-  int phase = pos % PACE;
-  for (int i = 0; i < NUM_LED; i++) {
-    int u = slope[phase];
-    int d = t - u;
-    int r, g, b;
-    switch (part) {
-      case 0: r = t; g = u; b = 0; break;
-      case 1: r = d; g = t; b = 0; break;
-      case 2: r = 0; g = t; b = u; break;
-      case 3: r = 0; g = d; b = t; break;
-      case 4: r = u; g = 0; b = t; break;
-      default: r = t; g = 0; b = d; break;
-    }
-    led[i] = (r << 24) | (g << 16) | (b << 8);
-
-    phase++;
-    if (phase == PACE) {
-      phase = 0;
-      part++;
-      if (part == 6) {
-        part = 0;
-      }
-    }
-  }
-}
-*/
-
-// Data persisted between "frames".
-typedef struct Cookie {
-#define PACE (NUM_LED / 2)
-  int pos[3];
-  int velocity[3];
-  int flop;
-  uint32_t slopeLo[PACE];
-  uint32_t slopeHi[PACE];
-} Cookie;
-
-static Cookie cookie;
-
-// Run-once for business-logic.
-void init_cookie(void) {
-  cookie.pos[0] = 0;
-  cookie.velocity[0] = 1;
-  cookie.pos[1] = 0;
-  cookie.velocity[1] = 2;
-  cookie.pos[2] = 0;
-  cookie.velocity[2] = -3;
-  cookie.flop = 0;
-  int half = PACE / 2;
-  for (int i = 0; i < PACE; i++) {
-    int k = i < half ? 0 : (i - half);
-    cookie.slopeLo[i] = (LOW_BRIGHTNESS * k) / half;
-    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * k) / half;
-  }
-}
-
-// Put your amazing code here.
-void render(uint32_t* led) {
-  int usr1 = gpio_get(USR1_PIN);
-  uint32_t* slope = usr1 ? cookie.slopeLo : cookie.slopeHi;
-  uint32_t t = usr1 ? LOW_BRIGHTNESS : HIGH_BRIGHTNESS;
-
-  int pos[3];
-  int dir[3];
-  int lim[3];
-  for (int i = 0; i < 3; ++i) {
-    if (cookie.flop) {
-      pos[i] = (cookie.pos[i] + NUM_LED + cookie.velocity[i]) % NUM_LED;
-    } else {
-      pos[i] = cookie.pos[i];
-    }
-    cookie.pos[i] = pos[i];
-    dir[i] = 1;
-    lim[i] = PACE;
-    if (pos[i] >= lim[i]) {
-      dir[i] = -dir[i];
-      pos[i] = 2 * PACE - 1 - pos[i];
-      lim[i] = PACE - 1 - lim[i];
-    }
-  }
-  cookie.flop = ~cookie.flop;
-  for (int i = 0; i < NUM_LED; i++) {
-    int rgb[3];
-    for (int j = 0; j < 3; ++j) {
-      rgb[j] = slope[pos[j]];
-      pos[j] = pos[j] + dir[j];
-      if (pos[j] == lim[j]) {
-        dir[j] = -dir[j];
-        pos[j] += dir[j];
-        lim[j] = PACE - 1 - lim[j];
-      }
-    }
-    led[i] = (rgb[0] << 24) | (rgb[1] << 16) | (rgb[2] << 8);
-  }
-}
-
 // Core 1 is used for calculations.
 void core1_main(void) {
-  init_cookie();
+  init_render();
   int bank = 0;
   while (1) {
     uint32_t* led = bank ? bankA : bankB;
