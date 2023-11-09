@@ -9,6 +9,7 @@
 #include "pico/multicore.h"
 
 // Project
+#include "render.h"
 #include "setup.h"
 #include "ws2812.pio.h"
 

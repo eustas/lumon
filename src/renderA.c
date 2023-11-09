@@ -1,5 +1,9 @@
 #include "render.h"
 
+// Board
+#include "hardware/gpio.h"
+
+// Project
 #include "setup.h"
 
 // Data persisted between "frames".
