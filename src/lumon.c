@@ -85,58 +85,74 @@ void core0_main(void) {
   }
 }
 
+// Buffers for RGB data;
 static uint32_t bankA[NUM_LED];
 static uint32_t bankB[NUM_LED];
 
+// Data persisted between "frames".
+struct Cookie {
+#define PACE (NUM_LED / 6)
+  int pos;
+  uint32_t slopeLo[PACE];
+  uint32_t slopeHi[PACE];
+};
+
+static Cookie cookie;
+
+// Run-once for business-logic.
+void init_cookie(void) {
+  cookie.pos = 0;
+  for (int i = 0; i < PACE; i++) {
+    cookie.slopeLo[i] = (LOW_BRIGHTNESS * i) / PACE;
+    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * i) / PACE;
+  }
+}
+
+// Put your amazing code here.
+void render(uint32_t* led) {
+  int usr1 = gpio_get(USR1_PIN);
+  uint32_t* slope = usr1 ? cookie.slopeLo : cookie.slopeHi;
+  uint32_t t = usr1 ? LOW_BRIGHTNESS : HIGH_BRIGHTNESS;
+
+  int dir = gpio_get(USR0_PIN) ? 1 : -1;
+  int pos = (cookie.pos + NUM_LED + dir) % NUM_LED;
+  cookie.pos = pos;
+
+  int part = pos / PACE;
+  int phase = pos % PACE;
+  for (int i = 0; i < NUM_LED; i++) {
+    int u = slope[phase];
+    int d = t - u;
+    int r, g, b;
+    switch (part) {
+      case 0: r = t; g = u; b = 0; break;
+      case 1: r = d; g = t; b = 0; break;
+      case 2: r = 0; g = t; b = u; break;
+      case 3: r = 0; g = d; b = t; break;
+      case 4: r = u; g = 0; b = t; break;
+      default: r = t; g = 0; b = d; break;
+    }
+    led[i] = (r << 24) | (g << 16) | (b << 8);
+
+    phase++;
+    if (phase == pace) {
+      phase = 0;
+      part++;
+      if (part == 6) {
+        part = 0;
+      }
+    }
+  }
+}
+
 // Core 1 is used for calculations.
 void core1_main(void) {
-  uint32_t slopeLo[NUM_LED / 6];
-  uint32_t slopeHi[NUM_LED / 6];
-  int pace = NUM_LED / 6;
-  for (int i = 0; i < pace; i++) {
-    slopeLo[i] = (LOW_BRIGHTNESS * i) / pace;
-    slopeHi[i] = (HIGH_BRIGHTNESS * i) / pace;
-  }
-
-  int pos = 0;
+  init_cookie();
   int bank = 0;
   while (1) {
     uint32_t* led = bank ? bankA : bankB;
     bank ^= 1;
-
-    int usr1 = gpio_get(USR1_PIN);
-    uint32_t* slope = usr1 ? slopeLo : slopeHi;
-    uint32_t t = usr1 ? LOW_BRIGHTNESS : HIGH_BRIGHTNESS;
-
-    int dir = gpio_get(USR0_PIN) ? 1 : -1;
-    pos = (pos + NUM_LED + dir) % NUM_LED;
-
-    int part = pos / pace;
-    int phase = pos % pace;
-    for (int i = 0; i < NUM_LED; i++) {
-      int u = slope[phase];
-      int d = t - u;
-      int r, g, b;
-      switch (part) {
-        case 0: r = t; g = u; b = 0; break;
-        case 1: r = d; g = t; b = 0; break;
-        case 2: r = 0; g = t; b = u; break;
-        case 3: r = 0; g = d; b = t; break;
-        case 4: r = u; g = 0; b = t; break;
-        default: r = t; g = 0; b = d; break;
-      }
-      led[i] = (r << 24) | (g << 16) | (b << 8);
-
-      phase++;
-      if (phase == pace) {
-        phase = 0;
-        part++;
-        if (part == 6) {
-          part = 0;
-        }
-      }
-    }
-
+    render(led);
     // Wait with renderer.
     (void)multicore_fifo_pop_blocking();  // we expect kCore0Done here.
     multicore_fifo_push_blocking((uint32_t)led);
