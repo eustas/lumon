@@ -90,12 +90,12 @@ static uint32_t bankA[NUM_LED];
 static uint32_t bankB[NUM_LED];
 
 // Data persisted between "frames".
-struct Cookie {
+typedef struct Cookie {
 #define PACE (NUM_LED / 6)
   int pos;
   uint32_t slopeLo[PACE];
   uint32_t slopeHi[PACE];
-};
+} Cookie;
 
 static Cookie cookie;
 
@@ -135,7 +135,7 @@ void render(uint32_t* led) {
     led[i] = (r << 24) | (g << 16) | (b << 8);
 
     phase++;
-    if (phase == pace) {
+    if (phase == PACE) {
       phase = 0;
       part++;
       if (part == 6) {
