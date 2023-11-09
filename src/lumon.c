@@ -98,18 +98,21 @@ void core1_main(void) {
     slopeHi[i] = (HIGH_BRIGHTNESS * i) / pace;
   }
 
+  int pos = 0;
   int bank = 0;
   while (1) {
     uint32_t* led = bank ? bankA : bankB;
     bank ^= 1;
 
-    uint32_t* slope = gpio_get(USR1_PIN) ? slopeLo : slopeHi;
+    int usr1 = gpio_get(USR1_PIN);
+    uint32_t* slope = usr1 ? slopeLo : slopeHi;
+    uint32_t t = usr1 ? LOW_BRIGHTNESS : HIGH_BRIGHTNESS;
 
-    int part = 0;
-    int phase = 0;
-    // int dir = gpio_get(USR0_PIN) ? 1 : -1;
-    // i = (i + NUM_LED + dir) % NUM_LED;
+    int dir = gpio_get(USR0_PIN) ? 1 : -1;
+    pos = (pos + NUM_LED + dir) % NUM_LED;
 
+    int part = pos / pace;
+    int phase = pos % pace;
     for (int i = 0; i < NUM_LED; i++) {
       int u = slope[phase];
       int d = t - u;
@@ -136,7 +139,7 @@ void core1_main(void) {
 
     // Wait with renderer.
     (void)multicore_fifo_pop_blocking();  // we expect kCore0Done here.
-    multicore_fifo_push_blocking(led);
+    multicore_fifo_push_blocking((uint32_t)led);
   }
 }
 
