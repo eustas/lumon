@@ -19,6 +19,7 @@ add_executable(lumon
   src/renderA.c
   # src/renderB.c
 )
+target_include_directories(lumon PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 pico_generate_pio_header(lumon ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
