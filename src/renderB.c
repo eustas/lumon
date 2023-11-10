@@ -4,7 +4,7 @@
 #include "hardware/gpio.h"
 
 // Project
-#include "setup.h"
+#include "io.h"
 
 // Data persisted between "frames".
 typedef struct Cookie {

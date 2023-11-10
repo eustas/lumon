@@ -15,12 +15,14 @@ endif()
 pico_sdk_init()
 
 add_executable(lumon
+  src/bt.c
+  src/io.c
   src/main.c
-  src/renderA.c
-  # src/renderB.c
+  src/renderA.c # one of renderA /renderB / etc.
 )
 target_include_directories(lumon PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
+pico_btstack_make_gatt_header(lumon PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/lumonade.gatt)
 pico_generate_pio_header(lumon ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
 target_link_libraries(lumon

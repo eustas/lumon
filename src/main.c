@@ -1,60 +1,22 @@
 // System
 #include <stdint.h>
-#include <string.h>
 
 // Board
-#include "hardware/gpio.h"
+#include "hardware/pio.h"
 #include "pico/multicore.h"
+#include "pico/stdio.h"
 
 // Project
+#include "bt.h"
+#include "io.h"
 #include "render.h"
-#include "setup.h"
-#include "ws2812.pio.h"
+#include "ws2812.pio.h"  // Generated from ws2812.pio
 
 // Initial dual-core handshake.
 uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
 // We report that passed pixel data is not used anymore.
 uint32_t kCore0Done  = 0xFEEDBAC2;
-
-// We use a separate LED for debugging.
-void init_flash(void) {
-  gpio_init(FLASH_PIN);
-  gpio_set_dir(FLASH_PIN, GPIO_OUT);
-}
-
-// "Blocking" debug flash. Takes 200ms.
-void flash(void) {
-  gpio_put(FLASH_PIN, 1);
-  sleep_ms(100);
-  gpio_put(FLASH_PIN, 0);
-  sleep_ms(100);
-}
-
-// Send "help" signal
-void sos(void) {
-  while (1) {
-    for (int i = 0; i < 9; i++) {
-      gpio_put(FLASH_PIN, 1);
-      sleep_ms(200 + 200 * (i >= 3 && i < 6));
-      gpio_put(FLASH_PIN, 0);
-      sleep_ms(200);
-    }
-    sleep(800);
-  }
-}
-
-// Those pins are used as inputs. By default those are "pulled-up" and read 1
-// when not connected; connect pin to GND to make it read 0.
-void init_usr(void) {
-  gpio_init(USR0_PIN);
-  gpio_pull_up(USR0_PIN);
-  gpio_set_dir(USR0_PIN, GPIO_IN);
-
-  gpio_init(USR1_PIN);
-  gpio_pull_up(USR1_PIN);
-  gpio_set_dir(USR1_PIN, GPIO_IN);
-}
 
 // Core 0 is used for system IO. It pushes updates to LED strip, and does other
 // IO (WiFi, USB-UART, etc.)
@@ -166,6 +128,8 @@ int main(void) {
   flash();
   prepare_pio();
   flash();
+
+  init_bt();
 
   // Initialize handshake. We are running on core 0.
   multicore_launch_core1(core1_start);

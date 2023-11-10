@@ -20,4 +20,17 @@
 #define LOW_BRIGHTNESS 63
 #define HIGH_BRIGHTNESS 255
 
+// We use a separate LED for debugging.
+void init_flash(void);
+
+// "Blocking" debug flash. Takes 200ms.
+void flash(void);
+
+// Send "help" signal (until device reset).
+void sos(void);
+
+// Those pins are used as inputs. By default those are "pulled-up" and read 1
+// when not connected; connect pin to GND to make it read 0.
+void init_usr(void);
+
 #endif  // LUMON_SETUP_H
