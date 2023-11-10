@@ -31,15 +31,16 @@ static uint8_t adv_data[] = {
   0x02, BLUETOOTH_DATA_TYPE_FLAGS,
   APP_AD_FLAGS,
   // Name
-  0x17, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME,
-  'P', 'i', 'c', 'o', ' ', '0', '0', ':', '0', '0', ':', '0', '0', ':', '0',
-  '0', ':', '0', '0', ':', '0', '0',
+  0x17, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, // 0x17 = 0x13 + ___
+  'L', 'u', 'm', 'o',                            //               ^^^
+  ' ', '0', '0', ':', '0', '0', ':', '0', '0',
+  ':', '0', '0', ':', '0', '0', ':', '0', '0',
   0x03, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS,
   0x1a, 0x18,
 };
 static const uint8_t adv_data_len = sizeof(adv_data);
 
-#define HEARTBEAT_PERIOD_MS 1000
+#define HEARTBEAT_PERIOD_MS 500
 static btstack_timer_source_t heartbeat;
 
 static btstack_packet_callback_registration_t hci_event_callback_registration;
