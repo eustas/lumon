@@ -31,6 +31,19 @@ void flash(void) {
   sleep_ms(100);
 }
 
+// Send "help" signal
+void sos(void) {
+  while (1) {
+    for (int i = 0; i < 9; i++) {
+      gpio_put(FLASH_PIN, 1);
+      sleep_ms(200 + 200 * (i >= 3 && i < 6));
+      gpio_put(FLASH_PIN, 0);
+      sleep_ms(200);
+    }
+    sleep(800);
+  }
+}
+
 // Those pins are used as inputs. By default those are "pulled-up" and read 1
 // when not connected; connect pin to GND to make it read 0.
 void init_usr(void) {
