@@ -1,4 +1,5 @@
-#ifndef SETUP_H
+#ifndef LUMON_SETUP_H
+#define LUMON_SETUP_H
 
 // Pin configuration
 #define FLASH_PIN 15
@@ -19,4 +20,4 @@
 #define LOW_BRIGHTNESS 63
 #define HIGH_BRIGHTNESS 255
 
-#endif  // SETUP_H
+#endif  // LUMON_SETUP_H

@@ -1,4 +1,5 @@
-#ifndef RENDER_H
+#ifndef LUMON_RENDER_H
+#define LUMON_RENDER_H
 
 #include <stdint.h>
 
@@ -8,4 +9,4 @@ void init_render(void);
 // Put your amazing code here.
 void render(uint32_t* led);
 
-#endif  // RENDER_H
+#endif  // LUMON_RENDER_H

@@ -15,7 +15,7 @@ endif()
 pico_sdk_init()
 
 add_executable(lumon
-  src/lumon.c
+  src/main.c
   src/renderA.c
   # src/renderB.c
 )
