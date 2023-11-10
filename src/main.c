@@ -156,6 +156,8 @@ void prepare_pio(void) {
 
 // Entry point.
 int main(void) {
+  stdio_init_all();
+
   init_flash();
   flash();
   init_usr();

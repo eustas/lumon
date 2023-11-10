@@ -25,6 +25,9 @@ pico_generate_pio_header(lumon ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
 target_link_libraries(lumon
   hardware_pio
+  pico_btstack_ble
+  pico_btstack_cyw43
+  pico_cyw43_arch_none
   pico_multicore
   pico_stdlib
 )
