@@ -22,7 +22,7 @@ add_executable(lumon
 )
 target_include_directories(lumon PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
-pico_btstack_make_gatt_header(lumon PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/lumonade.gatt)
+pico_btstack_make_gatt_header(lumon PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/lumo.gatt)
 pico_generate_pio_header(lumon ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
 target_link_libraries(lumon
