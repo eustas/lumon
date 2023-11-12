@@ -8,7 +8,7 @@
     <p>Lumo UI</p>
     <script>
 const DEVICE_NAME_PREFIX = 'Lumo';
-let valueToSend = '1';
+let valueToSend = 'b\x3F';
 
 function makeUuid(short) {
   return '0000' + short + '-0000-1000-8000-00805f9b34fb';
@@ -34,8 +34,12 @@ function onCharacteristicsListed(characteristics) {
 
     // c.readValue().then(onValueRead);
 
-    const newValue = new ArrayBuffer(1);
-    new Uint8Array(newValue)[0] = valueToSend.charCodeAt(0);
+    const n = valueToSend.length;
+    const newValue = new ArrayBuffer(n);
+    const view = new Uint8Array(newValue);
+    for (let i = 0; i < n; ++i) {
+      view[i] = valueToSend.charCodeAt(i);
+    }
     c.writeValue(newValue).then(onValueWritten);
   }
 }

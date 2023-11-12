@@ -12,6 +12,10 @@
 #include "io.h"
 #include "lumo.h" // Generated from lumo.gatt
 
+uint8_t bt_data_buf[BT_DATA_WRAP];
+uint32_t bt_data_start = 0;
+uint32_t bt_data_end = 0;
+
 // TODO(eustas): explain
 int le_notification_enabled;
 
@@ -128,18 +132,29 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle,
   (void)transaction_mode;
 
   // Technically offset can be any, but its semantics is unclear. Given what
-  // I see in the implementation, it should be zero.
+  // I see in the implementation, it should always be zero.
   if (offset != 0) {
     return 0;
   }
 
   if (att_handle == IO_VALUE_HANDLE) {
-    if (buffer_size > 0) {
-      uint8_t c = buffer[0];
-      if (c >= '1' && c <= '9') {
-        heartbeat_period_ms = 100 * (c - '0');
-      }
+    if (buffer_size == 0) {
+      // Empty message?
+      return 0;
     }
+    if (bt_data_end + buffer_size > bt_data_start + BT_DATA_WRAP) {
+      // Report error?
+      return 0;
+    }
+    uint32_t offset = bt_data_end & (BT_DATA_WRAP - 1);
+    if (offset + buffer_size <= BT_DATA_WRAP) {
+      memcpy(bt_data_buf + offset, buffer, buffer_size);
+    } else {
+      uint32_t head = BT_DATA_WRAP - offset;
+      memcpy(bt_data_buf + offset, buffer, head);
+      memcpy(bt_data_buf, buffer, buffer_size - head);
+    }
+    bt_data_end += buffer_size;
     return 0;
   }
 

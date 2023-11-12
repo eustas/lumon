@@ -1,6 +1,8 @@
 #ifndef LUMON_BT_H
 #define LUMON_BT_H
 
+#include <stdint.h>
+
 /*
 
 Glossary (from https://software-dl.ti.com/lprf/sdg-latest/html/ble-stack-3.x/)
@@ -41,5 +43,14 @@ Glossary (from https://software-dl.ti.com/lprf/sdg-latest/html/ble-stack-3.x/)
 */
 
 void init_bt(void);
+
+// MUST be a power of two.
+#define BT_DATA_WRAP 64
+// Ring buffer; when BT data arrives it is appended (if there is enough space),
+// or dropped. Client is responsible in timely data reading (moving
+// bt_data_start towards bt_data_end).
+extern uint8_t bt_data_buf[BT_DATA_WRAP];
+extern uint32_t bt_data_start;
+extern uint32_t bt_data_end;
 
 #endif  // LUMON_BT_H
