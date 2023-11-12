@@ -18,10 +18,11 @@ static Cookie cookie;
 
 // Run-once for business-logic.
 void init_render(void) {
+  int rounding = PACE / 2;
   cookie.pos = 0;
   for (int i = 0; i < PACE; i++) {
-    cookie.slopeLo[i] = (LOW_BRIGHTNESS * i) / PACE;
-    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * i) / PACE;
+    cookie.slopeLo[i] = (LOW_BRIGHTNESS * i + rounding) / PACE;
+    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * i + rounding) / PACE;
   }
 }
 

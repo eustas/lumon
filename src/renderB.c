@@ -28,10 +28,11 @@ void init_render(void) {
   cookie.velocity[2] = -3;
   cookie.flop = 0;
   int half = PACE / 2;
+  int rounding = half / 2;
   for (int i = 0; i < PACE; i++) {
     int k = i < half ? 0 : (i - half);
-    cookie.slopeLo[i] = (LOW_BRIGHTNESS * k) / half;
-    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * k) / half;
+    cookie.slopeLo[i] = (LOW_BRIGHTNESS * k + rounding) / half;
+    cookie.slopeHi[i] = (HIGH_BRIGHTNESS * k + rounding) / half;
   }
 }
 

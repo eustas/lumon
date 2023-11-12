@@ -17,7 +17,7 @@
 #define NUM_LED 300
 
 // Define max brightness levels.
-#define LOW_BRIGHTNESS 63
+#define LOW_BRIGHTNESS 3
 #define HIGH_BRIGHTNESS 255
 
 // We use a separate LED for debugging.

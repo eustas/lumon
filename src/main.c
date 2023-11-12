@@ -16,17 +16,38 @@
 uint32_t kCore0Ready = 0xFEEDBAC0;
 uint32_t kCore1Ready = 0xFEEDBAC1;
 // We report that passed pixel data is not used anymore.
-uint32_t kCore0Done  = 0xFEEDBAC2;
+uint32_t kCore1Done  = 0xFEEDBAC2;
 
-// Core 0 is used for system IO. It pushes updates to LED strip, and does other
-// IO (WiFi, USB-UART, etc.)
+// Buffers for RGB data;
+static uint32_t bankA[NUM_LED];
+static uint32_t bankB[NUM_LED];
+
+// Core 0 is used for system IO (WiFi, USB-UART, etc.). We also do calculations
+// here, since those are tolerant to interrupts.
 void core0_main(void) {
+  init_render();
+  int bank = 0;
+  while (1) {
+    uint32_t* led = bank ? bankA : bankB;
+    bank ^= 1;
+    render(led);
+    // Wait with renderer.
+    (void)multicore_fifo_pop_blocking();  // we expect kCore1Done here.
+    multicore_fifo_push_blocking((uint32_t)led);
+  }
+}
+
+// Core 1 is used to push data to LED strip. Normally, no interrupts should
+// happen.
+// TODO(eustas): we have a load of ~800 CLK busy-waiting periods plus a 280us
+//               sleep; could we do something useful?
+void core1_main(void) {
   // Run all PIO modules.
   pio_set_sm_mask_enabled(pio0,
       /* mask */ (1 << NUM_OUT_PINS) - 1, /* enabled */ true);
 
   // Notify, that we are ready to render.
-  multicore_fifo_push_blocking(kCore0Done);
+  multicore_fifo_push_blocking(kCore1Done);
 
   while (1) {
     // The other core gives us the new data to render.
@@ -40,26 +61,8 @@ void core0_main(void) {
       pio0->txf[0] = led[t++];
     }
     // Actually non-blocking - our synchronization is pull-driven.
-    multicore_fifo_push_blocking(kCore0Done);
+    multicore_fifo_push_blocking(kCore1Done);
     sleep_us(280);
-  }
-}
-
-// Buffers for RGB data;
-static uint32_t bankA[NUM_LED];
-static uint32_t bankB[NUM_LED];
-
-// Core 1 is used for calculations.
-void core1_main(void) {
-  init_render();
-  int bank = 0;
-  while (1) {
-    uint32_t* led = bank ? bankA : bankB;
-    bank ^= 1;
-    render(led);
-    // Wait with renderer.
-    (void)multicore_fifo_pop_blocking();  // we expect kCore0Done here.
-    multicore_fifo_push_blocking((uint32_t)led);
   }
 }
 
