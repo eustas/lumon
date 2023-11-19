@@ -1,109 +1,26 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Lumo UI</title>
-  </head>
-  <body>
-    <p>Lumo UI</p>
-    <script>
-const DEVICE_NAME_PREFIX = 'Lumo';
-let valueToSend = 'b\x3F';
+<!DOCTYPE html>
+<html lang="en">
 
-function makeUuid(short) {
-  return '0000' + short + '-0000-1000-8000-00805f9b34fb';
-}
+<head>
+  <title>LUM✲</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="normalize.css">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+</head>
 
-const AUTOMATION_SERVICE = makeUuid('1815');
-const STRING_CHARACTERISTIC = makeUuid('2a3d');
+<body>
+  <nav class="bg-gray b-b box navbar">
+    <a id="logo" class="navbar" href="https://eustas.github.io/lumon/index.html">LUM✲</a>
+    <span class="fill">&nbsp;</span>
+    <a href="https://github.com/eustas/lumon">GitHub</a></li>
+  </nav>
 
-function onValueRead(dataView) {
-  console.log('onValueRead');
-  console.log(dataView);
-}
+  <main>
+    <p>Available devices:</p>
+    <ul class="b-a" style="width: 32em;"><li>None</li></ul>
+  </main>
+</body>
 
-function onValueWritten(str) {
-  console.log('onValueWritten');
-}
-
-function onCharacteristicsListed(characteristics) {
-  for (let i = 0; i < characteristics.length; ++i) {
-    const c = characteristics[i];
-    console.log("Characteristic " + i + " UUID: " + c.uuid);
-    console.log("Characteristic " + i + " cached value: " + c.value);
-
-    // c.readValue().then(onValueRead);
-
-    const n = valueToSend.length;
-    const newValue = new ArrayBuffer(n);
-    const view = new Uint8Array(newValue);
-    for (let i = 0; i < n; ++i) {
-      view[i] = valueToSend.charCodeAt(i);
-    }
-    c.writeValue(newValue).then(onValueWritten);
-  }
-}
-
-function onServiceConnected(service) {
-  console.log("Service UUID: " + service.uuid);
-  service.getCharacteristics().then(onCharacteristicsListed);
-}
-
-function onServicesListed(services) {
-  for (let i = 0; i < services.length; ++i) {
-    const s = services[i];
-    console.log("Service " + i + " UUID: " + s.uuid);
-  }
-}
-
-function onDeviceConnected(server) {
-  // TODO(eustas): save server object?
-  console.log("Device connected");
-  //server.getPrimaryServices().then(onServicesListed);
-  server.getPrimaryService(AUTOMATION_SERVICE).then(onServiceConnected);
-}
-
-function onDeviceSelected(device) {
-  // TODO(eustas): save device object?
-  console.log("Device ID: " + device.id);
-  console.log("Device name: " + device.name);
-  device.gatt.connect().then(onDeviceConnected);
-}
-
-function onAvailabilityReport(available) {
-  console.log("Bluetooth available: " + (available ? 'yes' : 'no'));
-}
-
-function pair() {
-  const device_request = {
-    filters: [  // Devices matching ANY item will be shown
-      {namePrefix: DEVICE_NAME_PREFIX}
-    ],
-    optionalServices: [
-      AUTOMATION_SERVICE
-    ],
-    //acceptAllDevices: true,
-  };
-  navigator.bluetooth.requestDevice(device_request).then(onDeviceSelected);
-}
-
-function onAvailableDevicesList(devices) {
-  for (let i = 0; i < devices.length; ++i) {
-    const d = devices[i];
-    console.log("Available device " + i + " ID: " + d.id);
-    console.log("Available device " + i + " name: " + d.name);
-  }
-  if (devices.length > 0) {
-    onDeviceSelected(devices[0]);
-  } else {
-    pair();
-  }
-}
-
-function connect() {
-  navigator.bluetooth.getAvailability().then(onAvailabilityReport);
-  navigator.bluetooth.getDevices().then(onAvailableDevicesList);
-}
-    </script>
-  </body>
 </html>
