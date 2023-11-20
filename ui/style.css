@@ -8,43 +8,80 @@ body,
 }
 
 html,
+body {
+     height: 100%;
+
+     display: flex;
+     flex-direction: column;
+}
+
+body>* {
+     flex-shrink: 0;
+}
+
+html,
 body,
 table,
 p {
      font-style: normal;
      font-size: 16px;
      border-spacing: 0;
+     height: 100%;
 }
 
-nav,
-main {
-     padding: 0 6px;
-}
 nav {
-     margin-bottom: 6px;
+     line-height: 36px;
+     padding: 0 2px;
+     border-bottom: solid 1px #888;
 }
 
-.navbar {
-     line-height: 50px;
-     height: 50px;
+h1 {
+     font-size: 20px;
+     margin: 12px 0;
 }
 
-#logo {
-     background-image: url(lumo.svg);
-     padding-left: 50px;
-     background-repeat: no-repeat;
+.pane {
+     padding: 0 6px 12px 6px;
+     border-bottom: solid 1px #888;
+}
+
+.container {
+     display: flex;
+     flex-direction: column;
 }
 
 body {
      font-family: 'open sans', sans-serif;
 }
 
-.bg-gray {
-     background-color: #eee;
+.bg-0 {
+     background-color: #fcf4f8;
 }
 
-.b-b {
-     border-bottom: solid 1px #888;
+.bg-1 {
+     background-color: #fcf8f4;
+}
+
+.bg-2 {
+     background-color: #f8fcf4;
+}
+
+.bg-3 {
+     background-color: #f4fcf8;
+}
+.bg-3a {
+     background-color: #e8f8f0;
+}
+.bg-3b {
+     background-color: #d0f0e0;
+}
+
+.bg-4 {
+     background-color: #f4f8fc;
+}
+
+.bg-5 {
+     background-color: #f8f4fc;
 }
 
 .b-a {
@@ -66,4 +103,20 @@ a:hover {
 
 .fill {
      flex-grow: 1;
+}
+
+#logo {
+     font-size: 32px;
+}
+
+.button {
+     border: solid 1px #888;
+     border-radius: 4px;
+     padding: 2px 4px;
+     color: #000;
+     margin: 4px;
+}
+
+p {
+     line-height: 1.5;
 }
