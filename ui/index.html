@@ -2,35 +2,53 @@
 <html lang="en">
 
 <head>
-  <title>LUM✲</title>
+  <title>LUM❅</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="normalize.css">
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+  <script src="app.js"></script>
 </head>
 
 <body>
-  <nav class="bg-0 b-b box">
-    <a id="logo" href="https://eustas.github.io/lumon/index.html">LUM✲</a>
+  <nav class="bg-1 b-b box">
+    <a id="logo" href="https://eustas.github.io/lumon/index.html">LUM❅</a>
     <span class="fill">&nbsp;</span>
     <a href="https://github.com/eustas/lumon">GitHub</a></li>
   </nav>
 
   <main class="fill container">
-    <div class="bg-1 container pane">
-      <h1>PREPARE</h1>
-      <p>Power up your LUM✲ device and make sure it is on the air (green board LED is blinking).</p>
+    <div class="bg-2 container">
+      <div class="pane">
+        <h1>PREPARE</h1>
+        <p>Power up your LUM✲ device and make sure it is on the air (green board LED is blinking).</p>
+      </div>
     </div>
-    <div class="bg-2 container pane">
-      <h1>CONNECT</h1>
-      <p>Select a known device <select id="choose" disabled class="button bg-3b"><option>None</option></select>,</p>
-      <p>or <a id="pair" href="#" class="button bg-3b">pair</a> a new one.</p>
+    <div class="bg-3 container">
+      <div class="pane">
+        <h1>CONNECT</h1>
+        <p>Current device: <span id="current">N/A</span></p>
+        <p><a id="pair" href="#" class="button bg-4b">Connect</a></p>
+      </div>
     </div>
-    <div class="bg-3 container pane">
-      <h1>CONTROL</h1>
+    <div class="bg-4 container">
+      <div class="pane">
+        <h1>CONTROL</h1>
+        <p class="np">History:</p>
+        <div id="history" class="b-a fill p">
+        </div>
+        <div class="input-group p">
+          <input placeholder="Command to send (escaped)" id="cmd" type="text" class="button fill">
+          <a id="send" href="#" class="button bg-5b">▸</a>
+        </div>
+      </div>
     </div>
-    <div class="bg-4 container fill pane">
+    <div class="bg-5 container fill">
+      <div id="debug" class="pane">
+        <h1>DEBUG</h1>
+      </div>
     </div>
   </main>
 </body>

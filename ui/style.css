@@ -5,28 +5,21 @@ body,
      clear: none;
      padding: 0;
      margin: 0;
+     border-collapse: collapse;
 }
 
 html,
 body {
      height: 100%;
-
+     font-style: normal;
+     font-size: 16px;
+     border-spacing: 0;
      display: flex;
      flex-direction: column;
 }
 
 body>* {
      flex-shrink: 0;
-}
-
-html,
-body,
-table,
-p {
-     font-style: normal;
-     font-size: 16px;
-     border-spacing: 0;
-     height: 100%;
 }
 
 nav {
@@ -41,13 +34,16 @@ h1 {
 }
 
 .pane {
-     padding: 0 6px 12px 6px;
-     border-bottom: solid 1px #888;
+     align-self: center;
+     margin: 0 6px;
+     max-width: 800px;
+     width: calc(100% - 12px);
 }
 
 .container {
      display: flex;
      flex-direction: column;
+     border-bottom: solid 1px #888;
 }
 
 body {
@@ -79,13 +75,29 @@ body {
 .bg-4 {
      background-color: #f4f8fc;
 }
+.bg-4a {
+     background-color: #e8f0f8;
+}
+.bg-4b {
+     background-color: #d0e0f0;
+}
 
 .bg-5 {
      background-color: #f8f4fc;
 }
+.bg-5a {
+     background-color: #f0e8f8;
+}
+.bg-5b {
+     background-color: #e0d0f0;
+}
 
-.b-a {
-     border: solid 1px #888;
+.red {
+     color: #C00;
+}
+
+.blue {
+     color: #00C;
 }
 
 a {
@@ -107,6 +119,25 @@ a:hover {
 
 #logo {
      font-size: 32px;
+     color: #000;
+}
+
+.input-group {
+     display: flex;
+     align-items: stretch;
+}
+
+.input-group > :first-child {
+     margin-left: 0;
+}
+
+.input-group > :last-child {
+     margin-right: 0;
+}
+
+.b-a {
+     border: solid 1px #888;
+     border-radius: 4px;
 }
 
 .button {
@@ -114,9 +145,44 @@ a:hover {
      border-radius: 4px;
      padding: 2px 4px;
      color: #000;
-     margin: 4px;
+     box-shadow: 1.5px 1.5px rgba(0, 0, 0, 0.2);
+     margin: 0 4px;
 }
 
-p {
+p, .p {
      line-height: 1.5;
+     margin-bottom: 12px;
+}
+
+input {
+     line-height: 1.5;
+}
+
+.np {
+     margin-bottom: 0;
+}
+
+.b {
+     font-weight: bold;
+}
+
+#debug > p {
+     font-family: 'Source Code Pro', monospace;
+     font-size: 10px;
+     margin-bottom: 4px;
+}
+
+#history {
+     overflow-y: scroll;
+     height: 9em;
+     padding: 0;
+}
+
+#history > a {
+     display: block;
+     padding: 0 4px;
+}
+
+#history > a:hover {
+     background-color: #ccc;
 }
