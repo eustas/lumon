@@ -149,6 +149,11 @@ a:hover {
      margin: 0 4px;
 }
 
+.button.disabled {
+     opacity: 0.5;
+     cursor: no-drop;
+}
+
 p, .p {
      line-height: 1.5;
      margin-bottom: 12px;
@@ -168,7 +173,7 @@ input {
 
 #debug > p {
      font-family: 'Source Code Pro', monospace;
-     font-size: 10px;
+     font-size: 12px;
      margin-bottom: 4px;
 }
 

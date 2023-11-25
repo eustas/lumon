@@ -1,34 +1,11 @@
 const DEVICE_NAME_PREFIX = 'Lumo';
-let valueToSend = 'b\x3F';
 
 let historyItems = [];
+/** @type {BluetoothRemoteGATTCharacteristic?} */
+let btSink = null;
 
 const makeUuid = (short) => {
   return '0000' + short + '-0000-1000-8000-00805f9b34fb';
-};
-
-const info = (text) => {
-  const debug = document.getElementById("debug");
-  const p = document.createElement("p");
-  p.textContent = "INFO: " + text;
-  p.classList.add("blue");
-  debug.appendChild(p);
-};
-
-const error = (text) => {
-  const debug = document.getElementById("debug");
-  const p = document.createElement("p");
-  p.textContent = "ERROR: " + text;
-  p.classList.add("red");
-  debug.appendChild(p);
-}
-
-const dumpError = (errorObj) => {
-  error(errorObj);
-}
-
-const unescapeCommand = (text) => {
-  return text;
 };
 
 const AUTOMATION_SERVICE = makeUuid('1815');
@@ -41,6 +18,98 @@ const DEVICE_REQUEST = {
   // acceptAllDevices: true,
 };
 
+/*const pictograms = () => {
+  const start = [0x1F947];
+  const len = [64];
+  const all = [];
+  for (let k = 0; k < start.length; ++k) {
+    for (let i = 0; i < len[k]; ++i) {
+      all.push(String.fromCodePoint(start[k] + i));
+    }
+  }
+  return all.join('');
+};*/
+
+const info = (text) => {
+  const debug = document.getElementById("debug");
+  const p = document.createElement("p");
+  p.textContent = "INFO: " + text;
+  p.classList.add("blue");
+  debug.prepend(p);
+};
+
+const error = (text) => {
+  const debug = document.getElementById("debug");
+  const p = document.createElement("p");
+  p.textContent = "ERROR: " + text;
+  p.classList.add("red");
+  debug.prepend(p);
+}
+
+const dumpError = (errorObj) => {
+  error(errorObj);
+}
+
+const unescapeCommand = (/** @type{string} */ text) => {
+  let state = 0;
+  let len = 0;
+  let hex = 0;
+  const buffer = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; ++i) {
+    let c = text.charAt(i);
+    let ord = c.charCodeAt(0);
+    switch (state) {
+      case 0: // free state
+        if (c === "\\") {
+          state = 1;
+        } else {
+          buffer[len++] = ord;
+        }
+        break;
+
+      case 1: // after backslash
+        if (c === "\\") {
+          state = 0;
+          buffer[len++] = ord;
+        } else if (c === "x") {
+          state = 1;
+        } else {
+          error("Invalid escape sequence");
+          return null;
+        }
+        break;
+
+      case 2: // first hex digit
+      case 3: // second hex digit
+        let digit = 0;
+        if (ord >= 48 && ord <= 57) {
+          digit = ord - 48;
+        } else if (ord >= 65 && ord <= 70) {
+          digit = ord - 65 + 10;
+        } else if (ord >= 97 && ord <= 102) {
+          digit = ord - 97 + 10;
+        } else {
+          error("Invalid escape sequence");
+          return null;
+        }
+        if (state === 2) {
+          hex = digit;
+          state = 3;
+        } else {
+          hex = hex * 16 + digit;
+          buffer[len++] = hex;
+          state = 0;
+        }
+        break;
+
+      default:
+        error("Unreachable");
+        return null;
+    }
+  }
+  return buffer.slice(0, len);
+};
+
 const deviceToString = (device) => {
   return device.name + " (" + device.id + ")";
 };
@@ -49,16 +118,22 @@ const characteristicToString = (characteristic) => {
   return characteristic.uuid;
 };
 
-function onCharacteristicsListed(characteristics) {
+/*const onCharacteristicsListed = (characteristics) => {
   for (let i = 0; i < characteristics.length; ++i) {
     const c = characteristics[i];
-    info("Characteristic " + i + ":  " + characteristicToString(c));
+    info("Characteristic " + i + ": " + characteristicToString(c));
   }
+};*/
+
+const onCharacteristicObtained = (characteristic) => {
+  info("Obtained characteristic: " + characteristicToString(characteristic));
+  btSink = characteristic;
 };
 
 const onServiceConnected = (service) => {
   info("Service UUID: " + service.uuid);
-  service.getCharacteristics().then(onCharacteristicsListed).catch(dumpError);
+  service.getCharacteristic(STRING_CHARACTERISTIC).then(onCharacteristicObtained).catch(dumpError);
+  //service.getCharacteristics().then(onCharacteristicsListed).catch(dumpError);
 };
 
 const onDeviceConnected = (server) => {
@@ -67,24 +142,73 @@ const onDeviceConnected = (server) => {
   server.getPrimaryService(AUTOMATION_SERVICE).then(onServiceConnected).catch(dumpError);
 };
 
+const onDisconnected = (event) => {
+  info("Bluetooth device disconnected");
+  document.getElementById("current").textContent = "N/A";
+};
+
 const onDeviceSelected = (device) => {
   // TODO(eustas): save device object?
   const s = deviceToString(device);
   info("Connecting to device: " + s);
   document.getElementById("current").textContent = s;
+  device.addEventListener("gattserverdisconnected", onDisconnected);
   device.gatt.connect().then(onDeviceConnected).catch(dumpError);
 };
 
 const onAvailabilityReport = (available) => {
   info("Bluetooth available: " + (available ? "yes" : "no"));
-  if (!available) {
-    // TODO(eustas): notify user
-    return;
-  }
 };
 
 const onPairClick = (event) => {
   navigator.bluetooth.requestDevice(DEVICE_REQUEST).then(onDeviceSelected).catch(dumpError);
+};
+
+const onValueWritten = (unknown) => {
+  info("Command successfully sent");
+};
+
+const makeHistoryNode = (text) => {
+  const item = document.createElement("a");
+  item.href = "#";
+  item.textContent = text;
+  item.addEventListener("click", onHistoryItemClick);
+  return item;
+};
+
+const onSendClick = (event) => {
+  if (btSink === null) {
+    error("Can't send: not connected");
+    return;
+  }
+  const cmdInput = document.getElementById("cmd");
+  const rawCmd = cmdInput.value;
+  const binaryCmd = unescapeCommand(rawCmd);
+  if (binaryCmd === null) {
+    error("Can't send: invalid command");
+    return;
+  }
+
+  // Remove item from history / list
+  const existingIndex = historyItems.indexOf(rawCmd);
+  if (existingIndex >= 0) {
+    historyItems.splice(existingIndex, 1);
+  }
+  const history = document.getElementById("history");
+  for (let node = history.firstElementChild; node;) {
+    let current = node;
+    node = node.nextElementSibling;
+    if (current.textContent === rawCmd) {
+      history.removeChild(current);
+    }
+  }
+  // Add item at top.
+  historyItems.prepend(rawCmd);
+  history.prepend(makeHistoryNode(rawCmd));
+  // Save
+  localStorage.setItem("history", JSON.stringify(historyItems));
+
+  btSink.writeValueWithoutResponse(binaryCmd).then(onValueWritten).catch(dumpError);
 };
 
 const onHistoryItemClick = (/** @type{MouseEvent} */ event) => {
@@ -96,6 +220,8 @@ const onHistoryItemClick = (/** @type{MouseEvent} */ event) => {
 const main = (event) => {
   const pairButton = document.getElementById("pair");
   pairButton.addEventListener("click", onPairClick);
+  const sendButton = document.getElementById("send");
+  sendButton.addEventListener("click", onSendClick);
   const serializedHistory = localStorage.getItem("history");
   if (serializedHistory) {
     historyItems = JSON.parse(serializedHistory);
@@ -104,24 +230,10 @@ const main = (event) => {
   }
   const history = document.getElementById("history");
   for (let i = 0; i < historyItems.length; ++i) {
-    const item = document.createElement("a");
-    item.href = "#";
-    item.textContent = historyItems[i];
-    item.addEventListener("click", onHistoryItemClick);
-    history.appendChild(item);
+    history.appendChild(makeHistoryNode(historyItems[i]));
   }
   // Request Bluetooth status.
   navigator.bluetooth.getAvailability().then(onAvailabilityReport).catch(dumpError);
 };
 
 document.addEventListener("DOMContentLoaded", main);
-
-/*
-    const n = valueToSend.length;
-    const newValue = new ArrayBuffer(n);
-    const view = new Uint8Array(newValue);
-    for (let i = 0; i < n; ++i) {
-      view[i] = valueToSend.charCodeAt(i);
-    }
-    c.writeValue(newValue).then(onValueWritten);
-*/
