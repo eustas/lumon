@@ -72,7 +72,7 @@ const unescapeCommand = (/** @type{string} */ text) => {
           state = 0;
           buffer[len++] = ord;
         } else if (c === "x") {
-          state = 1;
+          state = 2;
         } else {
           error("Invalid escape sequence");
           return null;
@@ -203,8 +203,13 @@ const onSendClick = (event) => {
     }
   }
   // Add item at top.
-  historyItems.prepend(rawCmd);
+  historyItems.splice(0,0, rawCmd);
   history.prepend(makeHistoryNode(rawCmd));
+  // Deal with long tail.
+  if (historyItems.length > 100) {
+    historyItems.pop();
+    history.removeChild(history.lastElementChild);
+  }
   // Save
   localStorage.setItem("history", JSON.stringify(historyItems));
 
@@ -226,7 +231,9 @@ const main = (event) => {
   if (serializedHistory) {
     historyItems = JSON.parse(serializedHistory);
   } else {
-    historyItems = ["cat", "dog"];
+    historyItems = ["b\\x00", "b\\x01", "b\\x02", "b\\x04", "b\\x08",
+      "b\\x10", "b\\x20", "b\\x40", "b\\x80", "b\\xFF"
+    ];
   }
   const history = document.getElementById("history");
   for (let i = 0; i < historyItems.length; ++i) {
